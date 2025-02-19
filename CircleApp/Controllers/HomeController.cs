@@ -21,11 +21,15 @@ namespace CircleApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            int loggedInUserId = 1;
             var allPosts = await _context.Posts
+                .Where(u => (!u.IsPrivate || u.UserId == loggedInUserId) && u.Reports.Count < 5 && !u.IsDeleted)
                 .Include(u => u.User)
                 .Include(u => u.Likes)
+                .Include(u => u.Favorites)
                 .Include(u => u.Comments)
                 .ThenInclude(u => u.User)
+                .Include(u => u.Reports)
                 .OrderByDescending(c => c.DateCreated)
                 .ToListAsync();
             return View(allPosts);
@@ -54,7 +58,7 @@ namespace CircleApp.Controllers
                 string rootFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                 if (post.Image.ContentType.Contains("image"))
                 {
-                    string rootFolderPathImages = Path.Combine(rootFolderPath, "images/uploaded");
+                    string rootFolderPathImages = Path.Combine(rootFolderPath, "images/posts");
                     Directory.CreateDirectory(rootFolderPathImages);
 
                     string fileName = Guid.NewGuid().ToString() + Path.GetExtension(post.Image.FileName);
@@ -64,7 +68,7 @@ namespace CircleApp.Controllers
                         await post.Image.CopyToAsync(stream);
 
                     //Set the URL to the newPost object
-                    newPost.ImageUrl = "/images/uploaded/" + fileName;
+                    newPost.ImageUrl = "/images/posts/" + fileName;
                 }
             }
 
@@ -135,6 +139,25 @@ namespace CircleApp.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> TogglePostVisibility(PostVisibilityVM postVisibilityVM)
+        {
+            int loggedInUserId = 1;
+
+            //get post by id and loggedin user id
+            var post = await _context.Posts
+                .FirstOrDefaultAsync(l => l.Id == postVisibilityVM.PostId && l.UserId == loggedInUserId);
+
+            if (post != null)
+            {
+                post.IsPrivate = !post.IsPrivate;
+                _context.Posts.Update(post);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
         public async Task<IActionResult> AddPostComment(PostCommentVM postCommentVM)
         {
             int loggedInUserId = 1;
@@ -155,6 +178,24 @@ namespace CircleApp.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> AddPostReport(PostReportVM postReportVM)
+        {
+            int loggedInUserId = 1;
+
+            //Creat a post object
+            var newReport = new Report()
+            {
+                UserId = loggedInUserId,
+                PostId = postReportVM.PostId,
+                DateCreated = DateTime.UtcNow,
+            };
+            await _context.Reports.AddAsync(newReport);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
         public async Task<IActionResult> RemovePostComment(RemoveCommentVM removeCommentVM)
         {
             var commentDb = await _context.Comments.FirstOrDefaultAsync(c => c.Id == removeCommentVM.CommentId);
@@ -162,6 +203,21 @@ namespace CircleApp.Controllers
             if (commentDb != null)
             {
                 _context.Comments.Remove(commentDb);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> PostRemove(PostRemoveVM postRemoveVM)
+        {
+            var postDb = await _context.Posts.FirstOrDefaultAsync(c => c.Id == postRemoveVM.PostId);
+
+            if (postDb != null)
+            {
+                postDb.IsDeleted = true;
+                _context.Posts.Update(postDb);
                 await _context.SaveChangesAsync();
             }
 

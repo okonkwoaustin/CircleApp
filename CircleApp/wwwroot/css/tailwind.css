@@ -5747,8 +5747,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-white {
-    --tw-text-opacity: 1;
-    color: rgb(255 255 255 / var(--tw-text-opacity));
+   /* --tw-text-opacity: 1;
+    color: rgb(255 255 255 / var(--tw-text-opacity));*/
 }
 
 .text-white\/60 {

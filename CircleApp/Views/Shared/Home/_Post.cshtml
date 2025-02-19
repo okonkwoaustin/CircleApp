@@ -10,6 +10,11 @@
         var t when t.TotalMinutes >= 1 => $"{(int)t.TotalMinutes}m ago",
         _ => "Just now"
     };
+
+    bool isFavorited = Model.Favorites.Any(n => n.UserId == 1);
+    bool isLiked = Model.Likes.Any(n => n.UserId == 1);
+    bool isPrivate = Model.IsPrivate == true && Model.UserId == 1;
+    bool isReported = Model.Reports.Any(n => n.UserId == 1);
 }
 
 <div class="bg-white rounded-xl shadow-sm text-sm font-medium border1">
@@ -29,23 +34,29 @@
             <button type="button" class="button-icon w-8 h-8"> <ion-icon class="text-xl" name="ellipsis-horizontal"></ion-icon> </button>
             <div class="w-[245px] post-options-dropdown" uk-dropdown="pos: bottom-right; animation: uk-animation-scale-up uk-transform-origin-top-right; animate-out: true; mode: click">
 
-                <form>
-                    <button type="submit" class="hover:!bg-red-50 icon-link">
-                        <ion-icon class="text-xl" name="lock-closed-outline"></ion-icon>  Set as private
+                @if (Model.UserId == 1)
+                {
+                    <form asp-controller="Home" asp-action="TogglePostVisibility">
+                        <input type="hidden" name="postId" value="@Model.Id" />
+                        <button type="submit" class="hover:!bg-red-50 icon-link">
+                            <ion-icon name="@(isPrivate ? "lock-open-outline" : "lock-closed-outline")"></ion-icon>  Set as @(isPrivate ? "public" : "private")
+                        </button>
+                    </form>
+                    <hr>
+                    <button type="button" onclick="openPostDeleteConfirmation('@Model.Id')" class="text-red-400 hover:!bg-red-50 delete-post-btn">
+                        <ion-icon name="trash-bin-outline"></ion-icon>  Delete Post
                     </button>
-                </form>
-                <hr />
-                <form>
-                    <button type="submit" class="text-red-400 hover:!bg-red-50 icon-link">
-                        <ion-icon class="text-xl" name="trash-bin-outline"></ion-icon>  Delete post
-                    </button>
-                </form>
-                <hr />
-                <form>
-                    <button type="submit" class="hover:!bg-red-50 icon-link">
-                        <ion-icon class="text-xl shrink-0" name="flag-outline"></ion-icon>  Report
-                    </button>
-                </form>
+                    <hr />
+                }
+                @if (!isReported)
+                {
+                    <form asp-controller="Home" asp-action="AddPostReport">
+                        <input type="hidden" name="postId" value="@Model.Id" />
+                        <button type="submit" class="hover:!bg-red-50 icon-link">
+                            <ion-icon class="text-xl shrink-0" name="flag-outline"></ion-icon>  Report
+                        </button>
+                    </form>
+                }
             </div>
         </div>
     </div>
@@ -74,8 +85,8 @@
         <div class="flex items-center gap-2.5">
             <form asp-controller="Home" asp-action="TogglePostLike">
                 <input type="hidden" name="postId" value="@Model.Id" />
-                <button type="submit" class="button-icon @(Model.Likes.Any(n => n.UserId == 1) ? "text-red-500 bg-red-100" : "" )">
-                    <ion-icon class="text-lg" name="@(Model.Likes.Any(n => n.UserId == 1) ? "heart" : "heart-outline")"></ion-icon>
+                <button type="submit" class="button-icon @(isLiked ? "text-red-500 bg-red-100" : "" )">
+                    <ion-icon class="text-lg" name="@(isLiked ? "heart" : "heart-outline")"></ion-icon>
                 </button>
             </form>
             
@@ -91,13 +102,18 @@
 
         <div class="ml-auto"></div>
 
-        <div>
+        <div class="flex items-center gap-2">
             <form asp-controller="Home" asp-action="TogglePostFavorite">
                 <input type="hidden" name="postId" value="@Model.Id" />
-                <button type="submit" class="button-icon ml-auto">
-                    <ion-icon class="text-lg" name="bookmark-outline"></ion-icon>
+                <button type="submit" class="button-icon ml-auto @(isFavorited ? "text-orange-500 bt-orange-100":"")">
+                    <ion-icon class="text-lg" name="@(isFavorited ? "bookmark":"bookmark-outline")"></ion-icon>
                 </button>
             </form>
+            @if (Model.Favorites.Count > 0)
+            {
+                <a href="#">@Model.Favorites.Count</a>
+            }
+        </div>
     </div>
 
     @* Add comment section *@
