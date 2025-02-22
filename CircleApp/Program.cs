@@ -17,6 +17,7 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IHashtagsService, HashtagsService>();
 builder.Services.AddScoped<IStoriesService, StoriesService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
